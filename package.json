@@ -1,7 +1,7 @@
 {
   "name": "estufa-api",
   "version": "1.0.0",
-  "description": "Azure Functions backend for ESTufa",
+  "description": "Azure Functions Backend for ESTufa",
   "main": "src/functions/*.js",
   "scripts": {
     "start": "func start",
@@ -9,10 +9,8 @@
   },
   "dependencies": {
     "@azure/cosmos": "^4.0.0",
+    "@azure/functions": "^4.0.0",
     "@azure/storage-blob": "^12.17.0",
-    "@azure/functions": "^4.0.0"
-  },
-  "devDependencies": {
-    "azure-functions-core-tools": "^4.x"
+    "bcryptjs": "^2.4.3"
   }
 }
