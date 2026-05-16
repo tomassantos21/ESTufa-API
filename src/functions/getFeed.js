@@ -6,27 +6,19 @@ app.http('getFeed', {
     authLevel: 'anonymous',
     handler: async (request, context) => {
         try {
-            const cosmosConn = process.env.COSMOS_DB_CONNECTION;
-            const client = new CosmosClient(cosmosConn);
-            const database = client.database('estufa-db');
-            const container = database.container('plants');
+            const client = new CosmosClient(process.env.COSMOS_DB_CONNECTION);
+            const container = client.database('estufa-db').container('plants');
 
-            // Fetch all scans ordered by newest first
             const querySpec = {
-                query: "SELECT * from c ORDER BY c.timestamp DESC"
+                query: "SELECT * FROM c ORDER BY c.timestamp DESC"
             };
+            
+            const { resources: feed } = await container.items.query(querySpec).fetchAll();
 
-            const { resources: items } = await container.items
-                .query(querySpec)
-                .fetchAll();
-
-            return {
-                status: 200,
-                jsonBody: items
-            };
+            return { jsonBody: feed };
         } catch (error) {
             context.log.error(error);
-            return { status: 500, jsonBody: { error: error.message } };
+            return { status: 500, jsonBody: { error: "Failed to fetch feed" } };
         }
     }
 });
