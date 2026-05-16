@@ -8,6 +8,8 @@
     "test": "echo \"No tests specified\""
   },
   "dependencies": {
+    "@azure-rest/ai-vision-image-analysis": "^1.0.0",
+    "@azure/core-auth": "^1.7.0",
     "@azure/cosmos": "^4.0.0",
     "@azure/functions": "^4.0.0",
     "@azure/storage-blob": "^12.17.0",
