@@ -2,7 +2,7 @@
   "name": "estufa-api",
   "version": "1.0.0",
   "description": "Azure Functions Backend for ESTufa",
-  "main": "src/functions/*.js",
+  "main": "src/*.js",
   "scripts": {
     "start": "func start",
     "test": "echo \"No tests specified\""
