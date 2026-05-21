@@ -47,7 +47,7 @@ app.http('registerUser', {
 
             return { jsonBody: userResponse };
         } catch (error) {
-            context.log.error(error);
+            context.error(error);
             return { status: 500, jsonBody: { error: "Failed to register user" } };
         }
     }

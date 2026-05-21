@@ -24,7 +24,7 @@ app.http('getGallery', {
 
             return { jsonBody: gallery };
         } catch (error) {
-            context.log.error(error);
+            context.error(error);
             return { status: 500, jsonBody: { error: "Failed to fetch gallery" } };
         }
     }

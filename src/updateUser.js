@@ -40,7 +40,7 @@ app.http('updateUser', {
                 throw err;
             }
         } catch (error) {
-            context.log.error(error);
+            context.error(error);
             return { status: 500, jsonBody: { error: "Failed to update user" } };
         }
     }

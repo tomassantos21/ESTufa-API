@@ -39,14 +39,14 @@ app.http('detectPlant', {
             const visionResult = await visionClient.path('/imageanalysis:analyze').post({
                 body: { url: imageUrl },
                 queryParameters: {
-                    features: ['Tags', 'Caption'],
+                    features: ['Tags'],
                     'api-version': '2023-10-01',
                     language: 'en'
                 }
             });
 
             if (visionResult.status !== '200') {
-                context.log.error('Vision API error:', visionResult.body);
+                context.error('Vision API error:', visionResult.body);
                 throw new Error(`Vision API returned status ${visionResult.status}`);
             }
 
@@ -97,7 +97,7 @@ app.http('detectPlant', {
 
             return { jsonBody: plantResult };
         } catch (error) {
-            context.log.error('detectPlant error:', error.message);
+            context.error('detectPlant error:', error.message);
             return { status: 500, jsonBody: { error: "Failed to detect plant", details: error.message } };
         }
     }

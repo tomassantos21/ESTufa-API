@@ -27,7 +27,7 @@ app.http('getUploadToken', {
 
             return { jsonBody: { sasUrl, blobUrl: blobClient.url } };
         } catch (error) {
-            context.log.error(error);
+            context.error(error);
             return { status: 500, jsonBody: { error: "Failed to generate token" } };
         }
     }

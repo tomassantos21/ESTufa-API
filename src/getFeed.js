@@ -17,7 +17,7 @@ app.http('getFeed', {
 
             return { jsonBody: feed };
         } catch (error) {
-            context.log.error(error);
+            context.error(error);
             return { status: 500, jsonBody: { error: "Failed to fetch feed" } };
         }
     }

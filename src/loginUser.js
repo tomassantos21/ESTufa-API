@@ -39,7 +39,7 @@ app.http('loginUser', {
                 throw err;
             }
         } catch (error) {
-            context.log.error(error);
+            context.error(error);
             return { status: 500, jsonBody: { error: "Login failed" } };
         }
     }
