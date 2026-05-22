@@ -1,158 +1,148 @@
 # 🌿 ESTufa-API
 
-An extremely fast, secure, and modern **Serverless Node.js API** for the **ESTufa** ecosystem. Built using the modern **Azure Functions Node.js Programming Model v4**, it integrates state-of-the-art Azure Cloud services, automated AI plant detection, secure media uploads, and high-performance Redis caching.
+Uma API Serverless em Node.js extremamente rápida, segura e moderna para o ecossistema **ESTufa**. Desenvolvida com o moderno **Modelo de Programação v4 do Azure Functions para Node.js**, integra serviços nativos da cloud da Microsoft Azure, deteção automática de plantas por Inteligência Artificial, uploads seguros de ficheiros multimédia e uma camada de cache de alta performance em Redis.
 
 ---
 
-## 🏗️ Architecture & Stack
+## 🏗️ Arquitetura e Tecnologias
 
-The ESTufa API is built entirely on a serverless, cloud-native architecture for maximum scalability and efficiency:
+A API do ESTufa foi desenhada sob uma arquitetura serverless nativa na nuvem para garantir máxima escalabilidade e eficiência:
 
-*   **Runtime & Model**: Node.js (v22) using the **Azure Functions v4 Programming Model** (`@azure/functions`) with automatic worker indexing.
-*   **Database**: **Azure Cosmos DB (NoSQL)** for high-availability, low-latency, and serverless metadata storage of users and plant detections.
-*   **Storage**: **Azure Blob Storage** for holding plant photos, secured using transient **Shared Access Signatures (SAS)**.
-*   **Artificial Intelligence**: **Azure AI Vision (Image Analysis v4.0)** for extracting semantic tags, captions, and automatically identifying whether an uploaded image contains a plant.
-*   **Caching**: **Azure Container Instance (Redis)** for high-performance lazy-loaded caching to optimize read-heavy GET feeds and galleries.
-*   **Infrastructure**: Fully orchestrated using **Terraform** for reproducible, declarative multi-service deployments.
-
----
-
-## ⚡ Key Features
-
-1.  **Serverless gRPC Node Worker**: Built using modern JavaScript structures with clean handlers.
-2.  **Robust Redis Caching Utility**: Fully lazy-loaded and decoupled caching layer (`src/utils/cache.js`). Connects to Redis only when necessary to prevent startup gRPC blocking or timeouts, and fails back to Cosmos DB gracefully if Redis goes offline.
-3.  **Active Cache Invalidation**: When a new plant photo is successfully analysed via the AI endpoint, it instantly invalidates the cache for the global feed and the specific user's gallery.
-4.  **Secure Direct Uploads**: Clients fetch short-lived, permission-restricted Blob SAS tokens to upload files directly to Azure Blob Storage rather than streaming heavy files through the API.
-5.  **Secure Authentication**: Secure sign-ups and sign-ins utilizing `bcryptjs` for standard password hashing.
+*   **Runtime e Modelo**: Node.js (v22) utilizando o **Azure Functions v4 Programming Model** (`@azure/functions`) com indexação automática de funções.
+*   **Base de Dados**: **Azure Cosmos DB (NoSQL)** configurado em modo Serverless para persistência escalável e de baixa latência dos utilizadores e das deteções botânicas.
+*   **Armazenamento**: **Azure Blob Storage** para armazenar as fotos das plantas, protegido por regras de CORS e chaves temporárias SAS.
+*   **Inteligência Artificial**: **Azure AI Vision (Image Analysis v4.0)** para extração automática de tags, legendas semânticas e validação de espécies botânicas.
+*   **Cache de Alto Rendimento**: **Azure Container Instance (Redis)** para cache de leitura super rápida nos endpoints de feed comunitário e galerias.
+*   **Infraestrutura como Código**: Totalmente orquestrado com **Terraform** na pasta `/terraform` do repositório principal para implementações reproduzíveis e automatizadas.
 
 ---
 
-## 🛠️ Installation & Local Development
+## ⚡ Funcionalidades Principais
 
-### Prerequisites
+1.  **Processamento Serverless via gRPC**: Construído com o modelo moderno v4, otimizando o ciclo de vida do worker de Node.js.
+2.  **Camada de Cache Redis Robusta**: Módulo de cache completamente lazy-loaded e desacoplado (`src/utils/cache.js`). A ligação ao Redis só é iniciada quando a primeira operação é solicitada para evitar bloqueios ou timeouts de gRPC no arranque das Azure Functions. Caso o Redis fique offline, o sistema efetua o fallback automático e transparente para o Cosmos DB.
+3.  **Invalidação Ativa de Cache**: Ao registar com sucesso uma nova planta identificada por IA, os caches globais do feed comunitário (`plants:feed`) e da galeria pessoal do utilizador (`plants:gallery:<username>`) são imediatamente invalidados.
+4.  **Uploads Seguros Diretos (SAS)**: Os clientes web obtêm chaves temporárias SAS com permissões restritas para carregar imagens diretamente para o Blob Storage, reduzindo a carga de rede na API.
+5.  **Autenticação Segura**: Registo e login de utilizadores protegidos com cifragem de passwords via `bcryptjs`.
+
+---
+
+## 🛠️ Instalação e Desenvolvimento Local
+
+### Pré-requisitos
 *   [Node.js v22+](https://nodejs.org/)
 *   [Azure Functions Core Tools v4](https://github.com/Azure/azure-functions-core-tools)
-*   An active Azure Subscription (or local Azure Emulators like Azurite and Cosmos Emulator)
+*   Uma subscrição ativa da Azure (ou emuladores locais como o Azurite e Cosmos DB Emulator)
 
-### Setup Steps
-1.  **Clone the repository**:
+### Passos de Configuração
+1.  **Clonar o repositório**:
     ```bash
     git clone https://github.com/tomassantos21/ESTufa-API.git
     cd ESTufa-API
     ```
 
-2.  **Install dependencies**:
+2.  **Instalar as dependências**:
     ```bash
     npm install
     ```
 
-3.  **Configure environment variables**:
-    Create a `local.settings.json` file in the project root:
+3.  **Configurar variáveis de ambiente**:
+    Crie um ficheiro `local.settings.json` na raiz do projeto:
     ```json
     {
       "IsEncrypted": false,
       "Values": {
         "FUNCTIONS_WORKER_RUNTIME": "node",
         "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-        "COSMOS_DB_CONNECTION": "<YOUR_COSMOS_DB_CONNECTION_STRING>",
-        "BLOB_CONNECTION_STRING": "<YOUR_AZURE_STORAGE_CONNECTION_STRING>",
-        "AI_SERVICE_KEY": "<YOUR_AZURE_AI_VISION_KEY>",
-        "AI_SERVICE_ENDPOINT": "<YOUR_AZURE_AI_VISION_ENDPOINT>",
+        "COSMOS_DB_CONNECTION": "<SUA_CONNECTION_STRING_COSMOS_DB>",
+        "BLOB_CONNECTION_STRING": "<SUA_CONNECTION_STRING_STORAGE_ACCOUNT>",
+        "AI_SERVICE_KEY": "<SUA_CHAVE_AZURE_AI_VISION>",
+        "AI_SERVICE_ENDPOINT": "<SEU_ENDPOINT_AZURE_AI_VISION>",
         "REDIS_URL": "redis://localhost:6379"
       }
     }
     ```
     > [!NOTE]
-    > If `REDIS_URL` is omitted, the API will disable caching and fall back to querying Cosmos DB directly without throwing any errors.
+    > Se a variável `REDIS_URL` for omitida ou estiver incorreta, a API desativa silenciosamente o cache e continua a responder a todas as solicitações acedendo diretamente ao Cosmos DB, sem interrupções.
 
-4.  **Run the local dev server**:
+4.  **Iniciar o servidor local**:
     ```bash
     npm start
     ```
-    The console will output the local HTTP endpoints (usually under `http://localhost:7071/api/`).
+    O terminal exibirá os endereços das funções locais (geralmente sob `http://localhost:7071/api/`).
 
 ---
 
-## ⚙️ Configuration & Environment Variables
+## ⚙️ Variáveis de Ambiente em Produção
 
-| Variable Name | Required | Description |
+| Nome da Variável | Obrigatório | Descrição |
 | :--- | :---: | :--- |
-| `COSMOS_DB_CONNECTION` | **Yes** | Connection string for Azure Cosmos DB Account. |
-| `BLOB_CONNECTION_STRING` | **Yes** | Connection string for Azure Storage Account (Blob container: `fotos-plantas`). |
-| `AI_SERVICE_KEY` | **Yes** | API key for the Azure Computer Vision resource. |
-| `AI_SERVICE_ENDPOINT` | **Yes** | Endpoint URL for the Azure Computer Vision resource. |
-| `REDIS_URL` | *No* | The connection URL for Redis cache (e.g., `redis://<host>:<port>`). |
+| `COSMOS_DB_CONNECTION` | **Sim** | Connection string da conta do Azure Cosmos DB. |
+| `BLOB_CONNECTION_STRING` | **Sim** | Connection string do Azure Storage Account (contentor: `fotos-plantas`). |
+| `AI_SERVICE_KEY` | **Sim** | Chave de acesso do recurso do Azure Computer Vision. |
+| `AI_SERVICE_ENDPOINT` | **Sim** | URL de Endpoint do recurso do Azure Computer Vision. |
+| `REDIS_URL` | *Não* | URL de ligação ao Redis (ex: `redis://<host>:<port>`). |
 
 ---
 
-## 📡 API Reference
+## 📡 Referência da API
 
-### 1. Authentication Endpoints
+### 1. Endpoints de Autenticação
 
 #### `POST /api/registerUser`
-Registers a new user and hashes their password with bcrypt.
+Regista um novo utilizador cifrando a password com o bcrypt.
 
-*   **Request Body**:
+*   **Corpo do Pedido (Request)**:
     ```json
     {
       "username": "jane_doe",
       "password": "securepassword123",
       "fullName": "Jane Doe",
       "email": "jane@example.com",
-      "bio": "Plant lover"
+      "bio": "Entusiasta de botânica"
     }
     ```
-*   **Success Response (`200 OK`)**:
+*   **Resposta de Sucesso (`200 OK`)**:
     ```json
     {
       "id": "jane_doe",
       "username": "jane_doe",
       "fullName": "Jane Doe",
       "email": "jane@example.com",
-      "bio": "Plant lover",
+      "bio": "Entusiasta de botânica",
       "createdAt": "2026-05-22T19:00:00.000Z"
     }
     ```
-*   **Error Responses**:
-    *   `400 Bad Request`: If username or password is missing.
-    *   `409 Conflict`: If the username is already registered in Cosmos DB.
+*   **Respostas de Erro**:
+    *   `400 Bad Request`: Se o username ou password não forem fornecidos.
+    *   `409 Conflict`: Se o username já estiver registado na base de dados.
 
 #### `POST /api/loginUser`
-Authenticates a user and returns their profile.
+Autentica o utilizador e devolve o seu perfil.
 
-*   **Request Body**:
+*   **Corpo do Pedido (Request)**:
     ```json
     {
       "username": "jane_doe",
       "password": "securepassword123"
     }
     ```
-*   **Success Response (`200 OK`)**:
-    ```json
-    {
-      "id": "jane_doe",
-      "username": "jane_doe",
-      "fullName": "Jane Doe",
-      "email": "jane@example.com",
-      "bio": "Plant lover",
-      "createdAt": "2026-05-22T19:00:00.000Z"
-    }
-    ```
-*   **Error Response (`401 Unauthorized`)**: Invalid credentials or user not found.
+*   **Resposta de Sucesso (`200 OK`)**: Devolve os dados do perfil (excluindo a hash da password).
+*   **Resposta de Erro (`401 Unauthorized`)**: Credenciais inválidas ou utilizador não encontrado.
 
 #### `POST /api/updateUser`
-Updates user profile settings (fullName, email, bio).
+Atualiza os campos de perfil do utilizador (fullName, email, bio).
 
 ---
 
-### 2. Media & AI Detection Endpoints
+### 2. Endpoints de Multimédia e Deteção por IA
 
 #### `GET /api/getUploadToken`
-Generates a short-lived Shared Access Signature (SAS) URL for direct secure browser/client photo upload.
+Gera um token SAS (Shared Access Signature) temporário para permitir o upload direto e seguro de fotos para o Blob Storage a partir do cliente.
 
-*   **Query Parameters**:
-    *   `fileName` (Optional): The target name of the file. Defaults to `upload-<timestamp>.jpg`.
-*   **Success Response (`200 OK`)**:
+*   **Parâmetros de Consulta (Query)**:
+    *   `fileName` (Opcional): Nome desejado do ficheiro. Por defeito é `upload-<timestamp>.jpg`.
+*   **Resposta de Sucesso (`200 OK`)**:
     ```json
     {
       "sasUrl": "https://saestufa.blob.core.windows.net/fotos-plantas/upload-12345.jpg?sv=...",
@@ -161,9 +151,9 @@ Generates a short-lived Shared Access Signature (SAS) URL for direct secure brow
     ```
 
 #### `POST /api/detectPlant`
-Submits a photo URL for Azure AI Vision analysis, checks if it is a plant, saves metadata, and invalidates the cached feed/gallery.
+Submete o URL de uma imagem carregada para análise botânica por IA, guarda os metadados no Cosmos DB e invalida automaticamente os caches afetados.
 
-*   **Request Body**:
+*   **Corpo do Pedido (Request)**:
     ```json
     {
       "imageUrl": "https://saestufa.blob.core.windows.net/fotos-plantas/upload-12345.jpg",
@@ -171,7 +161,7 @@ Submits a photo URL for Azure AI Vision analysis, checks if it is a plant, saves
       "username": "Jane Doe"
     }
     ```
-*   **Success Response (`200 OK`)**:
+*   **Resposta de Sucesso (`200 OK`)**:
     ```json
     {
       "id": "1779461118190",
@@ -190,64 +180,56 @@ Submits a photo URL for Azure AI Vision analysis, checks if it is a plant, saves
 
 ---
 
-### 3. Read Feed Endpoints (Cached)
+### 3. Endpoints de Leitura (Com Cache)
 
 #### `GET /api/getFeed`
-Retrieves a global chronological feed of plant uploads. Fully cached in Redis for **5 minutes** (`plants:feed`). Falls back gracefully to Cosmos DB.
+Obtém o feed comunitário de plantas registadas por ordem cronológica. É mantido em cache Redis por **5 minutos** (`plants:feed`) e possui fallback robusto para o Cosmos DB.
 
-*   **Success Response (`200 OK`)**:
-    ```json
-    [
-      {
-        "id": "1779461118190",
-        "userId": "jane_doe",
-        "username": "Jane Doe",
-        "imageUrl": "https://saestufa.blob.core.windows.net/fotos-plantas/upload-12345.jpg",
-        "plantName": "Rose",
-        "scientificName": "Rose",
-        "confidence": 0.985,
-        "isPlant": true,
-        "timestamp": "2026-05-22T19:02:00.000Z"
-      }
-    ]
-    ```
+*   **Resposta de Sucesso (`200 OK`)**: Devolve a lista de deteções de toda a comunidade.
 
 #### `GET /api/getGallery`
-Retrieves plant uploads uploaded by a specific user. Cached in Redis per user for **5 minutes** (`plants:gallery:<username>`).
+Obtém o histórico de plantas registadas por um utilizador específico. É mantido em cache Redis por **5 minutos** (`plants:gallery:<username>`).
 
-*   **Query Parameters**:
-    *   `username` (Required): The username of the user.
-*   **Success Response (`200 OK`)**: Returns a filtered list of plant items.
+*   **Parâmetros de Consulta (Query)**:
+    *   `username` (Obrigatório): Nome de utilizador.
 
 ---
 
-## 🚀 Cloud Deployment
+## 🚀 Publicação na Nuvem (Cloud Deployment)
 
-The production API is deployed onto an **Azure Windows Consumption Function App** and utilizes the **Run-From-Package** setting to ensure atomic, secure deployments.
+O ecossistema em produção corre sob um plano **Azure Windows Consumption** utilizando o método **Run-From-Package** para garantir atualizações atómicas, rápidas e sem falhas de carregamento.
 
-### Infrastructure Deploy (Terraform)
-Navigate to the Terraform folder and run:
+### Provisionamento (Terraform)
+Navegue até à pasta do Terraform no repositório principal e execute:
 ```bash
 terraform init
 terraform plan
 terraform apply -auto-approve
 ```
 
-### Publishing Code
-To deploy code directly from the local terminal to the cloud, use Azure Functions Core Tools:
+### Publicar Código da API
+Para empacotar e enviar o código da API para a Azure utilizando as Core Tools, execute na raiz do projeto:
 ```bash
-func azure functionapp publish <YOUR_FUNCTION_APP_NAME> --javascript
+func azure functionapp publish <NOME_DA_SUA_FUNCTION_APP> --javascript
 ```
-This automatically resolves and pushes the complete package including pre-packaged production `node_modules`.
+Este comando empacota localmente a pasta do projeto (incluindo as dependências resolvidas em `node_modules`) e faz o upload do ficheiro zip.
 
-### Deployment Settings (WEBSITE_RUN_FROM_PACKAGE)
-To guarantee that files are read directly from the zip package and never experience missing `node_modules` errors, the Azure Function setting is pinned to:
+### Configuração Recomenda (Run From Package)
+Para garantir que as Azure Functions lêem os ficheiros diretamente a partir do ficheiro zip montado em modo leitura, a definição da Function App está fixada em:
 ```hcl
 "WEBSITE_RUN_FROM_PACKAGE" = "1"
 ```
-This completely avoids Kudu Git Sync conflicts and provides instant, zero-downtime hot-reloads.
+Isto assegura arranques rápidos e previne conflitos de sincronização.
 
 ---
 
-## 📝 License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+## 👥 Autores
+Trabalho académico realizado por:
+*   **Catarina Antunes** (nº 20170667)
+*   **Martim Martins** (nº 20230327)
+*   **Tomás Santos** (nº 20220896)
+
+---
+
+## 📄 Licença
+Este projeto encontra-se sob a licença MIT. Para mais informações, consulte o ficheiro [LICENSE](LICENSE).
