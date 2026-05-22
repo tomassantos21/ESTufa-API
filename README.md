@@ -27,61 +27,69 @@ A API do ESTufa foi desenhada sob uma arquitetura serverless nativa na nuvem par
 
 ---
 
-## 🛠️ Instalação e Desenvolvimento Local
+## ☁️ Como Implementar e Executar na Nuvem (Microsoft Azure)
+
+Esta plataforma foi desenhada especificamente para ser executada e orquestrada de forma nativa e automática na cloud da Microsoft Azure. Siga os passos abaixo para efetuar o provisionamento de recursos e a publicação do código.
 
 ### Pré-requisitos
-*   [Node.js v22+](https://nodejs.org/)
-*   [Azure Functions Core Tools v4](https://github.com/Azure/azure-functions-core-tools)
-*   Uma subscrição ativa da Azure (ou emuladores locais como o Azurite e Cosmos DB Emulator)
-
-### Passos de Configuração
-1.  **Clonar o repositório**:
-    ```bash
-    git clone https://github.com/tomassantos21/ESTufa-API.git
-    cd ESTufa-API
-    ```
-
-2.  **Instalar as dependências**:
-    ```bash
-    npm install
-    ```
-
-3.  **Configurar variáveis de ambiente**:
-    Crie um ficheiro `local.settings.json` na raiz do projeto:
-    ```json
-    {
-      "IsEncrypted": false,
-      "Values": {
-        "FUNCTIONS_WORKER_RUNTIME": "node",
-        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-        "COSMOS_DB_CONNECTION": "<SUA_CONNECTION_STRING_COSMOS_DB>",
-        "BLOB_CONNECTION_STRING": "<SUA_CONNECTION_STRING_STORAGE_ACCOUNT>",
-        "AI_SERVICE_KEY": "<SUA_CHAVE_AZURE_AI_VISION>",
-        "AI_SERVICE_ENDPOINT": "<SEU_ENDPOINT_AZURE_AI_VISION>",
-        "REDIS_URL": "redis://localhost:6379"
-      }
-    }
-    ```
-    > [!NOTE]
-    > Se a variável `REDIS_URL` for omitida ou estiver incorreta, a API desativa silenciosamente o cache e continua a responder a todas as solicitações acedendo diretamente ao Cosmos DB, sem interrupções.
-
-4.  **Iniciar o servidor local**:
-    ```bash
-    npm start
-    ```
-    O terminal exibirá os endereços das funções locais (geralmente sob `http://localhost:7071/api/`).
+*   Uma conta ativa na **Microsoft Azure** com uma subscrição válida.
+*   [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) instalada e autenticada (`az login`).
+*   [Azure Functions Core Tools v4](https://github.com/Azure/azure-functions-core-tools) instalada no seu sistema para publicação do código.
+*   [Terraform](https://developer.hashicorp.com/terraform/downloads) instalado para provisionar a infraestrutura de rede e serviços automáticos.
 
 ---
 
-## ⚙️ Variáveis de Ambiente em Produção
+### Passo 1: Provisionar a Infraestrutura Cloud (Terraform)
+Todas as configurações de infraestrutura encontram-se declaradas na pasta `/terraform` do repositório principal do frontend. O Terraform encarrega-se de criar a base de dados, contas de armazenamento, inteligência artificial e os planos de aplicação necessários.
 
-| Nome da Variável | Obrigatório | Descrição |
+1.  Abra a consola na pasta `/terraform` do projeto principal.
+2.  Inicialize o Terraform para descarregar os conectores da Azure:
+    ```bash
+    terraform init
+    ```
+3.  Valide o plano de recursos declarados:
+    ```bash
+    terraform plan
+    ```
+4.  Aplique a configuração e provisione os recursos na Azure:
+    ```bash
+    terraform apply -auto-approve
+    ```
+    *Isto irá gerar um grupo de recursos na Azure com a base de dados Cosmos DB, Blob Storage, a instância de contentor Docker Redis (ACI), o plano App Service e a respetiva Function App do backend.*
+
+---
+
+### Passo 2: Configuração e Variáveis de Ambiente na Cloud
+O Terraform configura de forma automática as seguintes variáveis de ambiente diretamente nas **Configurações da Function App** (`app_settings`):
+
+| Variável | Obrigatória | Descrição |
 | :--- | :---: | :--- |
-| `COSMOS_DB_CONNECTION` | **Sim** | Connection string da conta do Azure Cosmos DB. |
-| `BLOB_CONNECTION_STRING` | **Sim** | Connection string do Azure Storage Account (contentor: `fotos-plantas`). |
-| `AI_SERVICE_KEY` | **Sim** | Chave de acesso do recurso do Azure Computer Vision. |
-| `AI_SERVICE_ENDPOINT` | **Sim** | URL de Endpoint do recurso do Azure Computer Vision. |
-| `REDIS_URL` | *Não* | URL de ligação ao Redis (ex: `redis://<host>:<port>`). |
+| `COSMOS_DB_CONNECTION` | **Sim** | Ligação segura ao Cosmos DB gerada dinamicamente. |
+| `BLOB_CONNECTION_STRING` | **Sim** | Ligação de acesso seguro ao Azure Storage Account para as fotos das plantas. |
+| `AI_SERVICE_KEY` | **Sim** | Chave privada para invocar o serviço de IA do Azure Computer Vision. |
+| `AI_SERVICE_ENDPOINT` | **Sim** | Endpoint regional do serviço de Deteção e Análise de IA do Azure. |
+| `REDIS_URL` | **Sim** | FQDN público da instância Redis Contentorizada: `redis://${fqdn}:6379`. |
+| `WEBSITE_RUN_FROM_PACKAGE` | **Sim** | Configurada em **`1`** para ativar a execução a partir do pacote zip de forma segura. |
+
+---
+
+### Passo 3: Publicação e Execução do Código na Azure
+Para enviar o código da API local para as funções da nuvem, garantindo a indexação automática de dependências e execução isolada:
+
+1.  Certifique-se de que se encontra na raiz da pasta `ESTufa-API`.
+2.  Instale localmente as dependências de produção para que sejam empacotadas:
+    ```bash
+    npm install
+    ```
+3.  Autentique-se na Azure CLI, se ainda não o fez:
+    ```bash
+    az login
+    ```
+4.  Efetue a publicação do código diretamente para a Function App na Azure utilizando as Core Tools (substitua `<NOME_DA_FUNCTION_APP>` pelo nome gerado no portal Azure, ex: `estufa-backend-jge55d`):
+    ```bash
+    func azure functionapp publish <NOME_DA_FUNCTION_APP> --javascript
+    ```
+    *Este comando empacota a pasta do projeto (incluindo as dependências resolvidas em `node_modules`), faz o upload do ficheiro zip e sincroniza as funções automaticamente na Azure. Uma vez concluído, as funções são indexadas com sucesso e ficam ativas e prontas a receber tráfego.*
 
 ---
 
@@ -113,70 +121,19 @@ Regista um novo utilizador cifrando a password com o bcrypt.
       "createdAt": "2026-05-22T19:00:00.000Z"
     }
     ```
-*   **Respostas de Erro**:
-    *   `400 Bad Request`: Se o username ou password não forem fornecidos.
-    *   `409 Conflict`: Se o username já estiver registado na base de dados.
 
 #### `POST /api/loginUser`
 Autentica o utilizador e devolve o seu perfil.
-
-*   **Corpo do Pedido (Request)**:
-    ```json
-    {
-      "username": "jane_doe",
-      "password": "securepassword123"
-    }
-    ```
-*   **Resposta de Sucesso (`200 OK`)**: Devolve os dados do perfil (excluindo a hash da password).
-*   **Resposta de Erro (`401 Unauthorized`)**: Credenciais inválidas ou utilizador não encontrado.
-
-#### `POST /api/updateUser`
-Atualiza os campos de perfil do utilizador (fullName, email, bio).
 
 ---
 
 ### 2. Endpoints de Multimédia e Deteção por IA
 
 #### `GET /api/getUploadToken`
-Gera um token SAS (Shared Access Signature) temporário para permitir o upload direto e seguro de fotos para o Blob Storage a partir do cliente.
-
-*   **Parâmetros de Consulta (Query)**:
-    *   `fileName` (Opcional): Nome desejado do ficheiro. Por defeito é `upload-<timestamp>.jpg`.
-*   **Resposta de Sucesso (`200 OK`)**:
-    ```json
-    {
-      "sasUrl": "https://saestufa.blob.core.windows.net/fotos-plantas/upload-12345.jpg?sv=...",
-      "blobUrl": "https://saestufa.blob.core.windows.net/fotos-plantas/upload-12345.jpg"
-    }
-    ```
+Gera um token SAS temporário para permitir o upload direto e seguro de fotos para o Blob Storage a partir do cliente.
 
 #### `POST /api/detectPlant`
 Submete o URL de uma imagem carregada para análise botânica por IA, guarda os metadados no Cosmos DB e invalida automaticamente os caches afetados.
-
-*   **Corpo do Pedido (Request)**:
-    ```json
-    {
-      "imageUrl": "https://saestufa.blob.core.windows.net/fotos-plantas/upload-12345.jpg",
-      "userId": "jane_doe",
-      "username": "Jane Doe"
-    }
-    ```
-*   **Resposta de Sucesso (`200 OK`)**:
-    ```json
-    {
-      "id": "1779461118190",
-      "userId": "jane_doe",
-      "username": "Jane Doe",
-      "imageUrl": "https://saestufa.blob.core.windows.net/fotos-plantas/upload-12345.jpg",
-      "plantName": "Rose",
-      "scientificName": "Rose",
-      "confidence": 0.985,
-      "description": "A close up of a red rose.",
-      "detectedTags": ["rose", "flower", "plant", "red"],
-      "isPlant": true,
-      "timestamp": "2026-05-22T19:02:00.000Z"
-    }
-    ```
 
 ---
 
@@ -185,41 +142,8 @@ Submete o URL de uma imagem carregada para análise botânica por IA, guarda os 
 #### `GET /api/getFeed`
 Obtém o feed comunitário de plantas registadas por ordem cronológica. É mantido em cache Redis por **5 minutos** (`plants:feed`) e possui fallback robusto para o Cosmos DB.
 
-*   **Resposta de Sucesso (`200 OK`)**: Devolve a lista de deteções de toda a comunidade.
-
 #### `GET /api/getGallery`
 Obtém o histórico de plantas registadas por um utilizador específico. É mantido em cache Redis por **5 minutos** (`plants:gallery:<username>`).
-
-*   **Parâmetros de Consulta (Query)**:
-    *   `username` (Obrigatório): Nome de utilizador.
-
----
-
-## 🚀 Publicação na Nuvem (Cloud Deployment)
-
-O ecossistema em produção corre sob um plano **Azure Windows Consumption** utilizando o método **Run-From-Package** para garantir atualizações atómicas, rápidas e sem falhas de carregamento.
-
-### Provisionamento (Terraform)
-Navegue até à pasta do Terraform no repositório principal e execute:
-```bash
-terraform init
-terraform plan
-terraform apply -auto-approve
-```
-
-### Publicar Código da API
-Para empacotar e enviar o código da API para a Azure utilizando as Core Tools, execute na raiz do projeto:
-```bash
-func azure functionapp publish <NOME_DA_SUA_FUNCTION_APP> --javascript
-```
-Este comando empacota localmente a pasta do projeto (incluindo as dependências resolvidas em `node_modules`) e faz o upload do ficheiro zip.
-
-### Configuração Recomenda (Run From Package)
-Para garantir que as Azure Functions lêem os ficheiros diretamente a partir do ficheiro zip montado em modo leitura, a definição da Function App está fixada em:
-```hcl
-"WEBSITE_RUN_FROM_PACKAGE" = "1"
-```
-Isto assegura arranques rápidos e previne conflitos de sincronização.
 
 ---
 
