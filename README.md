@@ -59,7 +59,7 @@ Todas as configurações de infraestrutura encontram-se declaradas na pasta `/te
 
 ---
 
-### Passo 2: Configuração e Variáveis de Ambiente na Cloud
+### Configuração e Variáveis de Ambiente na Cloud
 O Terraform configura de forma automática as seguintes variáveis de ambiente diretamente nas **Configurações da Function App** (`app_settings`):
 
 | Variável | Obrigatória | Descrição |
@@ -73,7 +73,7 @@ O Terraform configura de forma automática as seguintes variáveis de ambiente d
 
 ---
 
-### Passo 3: Publicação e Execução do Código na Azure
+### Publicação e Execução do Código na Azure
 Para enviar o código da API local para as funções da nuvem, garantindo a indexação automática de dependências e execução isolada:
 
 1.  Certifique-se de que se encontra na raiz da pasta `ESTufa-API`.
