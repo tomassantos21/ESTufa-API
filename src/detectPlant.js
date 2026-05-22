@@ -2,6 +2,7 @@ const { app } = require('@azure/functions');
 const { CosmosClient } = require('@azure/cosmos');
 const createVisionClient = require('@azure-rest/ai-vision-image-analysis').default;
 const { AzureKeyCredential } = require('@azure/core-auth');
+const cache = require('./utils/cache');
 
 // Plant-related tags to look for in the Azure Vision response
 const PLANT_TAGS = [
@@ -94,6 +95,16 @@ app.http('detectPlant', {
             const cosmosClient = new CosmosClient(process.env.COSMOS_DB_CONNECTION);
             const container = cosmosClient.database('estufa-db').container('plants');
             await container.items.create(plantResult);
+
+            // Invalidate the public feed cache and the user's gallery cache
+            try {
+                await cache.del('plants:feed');
+                if (username) {
+                    await cache.del(`plants:gallery:${username}`);
+                }
+            } catch (cacheErr) {
+                context.error('Failed to invalidate cache:', cacheErr.message);
+            }
 
             return { jsonBody: plantResult };
         } catch (error) {

@@ -1,1 +1,7 @@
 node_modules
+local.settings.json
+.vscode
+out
+bin
+obj
+*.zip
